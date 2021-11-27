@@ -14,6 +14,7 @@ const (
 	OverlapIntegrals       string = "./input/h2o/STO-3G/s.dat"
 	OneElectronKinetic     string = "./input/h2o/STO-3G/t.dat"
 	NuclearAttraction      string = "./input/h2o/STO-3G/v.dat"
+	TwoElectronPath        string = "./input/h2o/STO-3G/eri.dat"
 )
 
 type mat interface {
@@ -58,7 +59,7 @@ func convertStringSlice(s []string) (vector, error) {
 
 }
 
-func readFile(fp string) (mat, error) {
+func readFile(fp string, splitBool bool) (mat, error) {
 
 	ap, err := filepath.Abs(fp)
 	if err != nil {
@@ -98,27 +99,73 @@ func readFile(fp string) (mat, error) {
 
 		m = append(m, vec)
 	}
+	if splitBool {
+		return splitSlices(m), nil
+	} else {
+		return m, nil
+	}
+}
 
-	return m, nil
+func getValues(m matrix) vector {
+	vec := make(vector, 0)
+	for _, v := range m {
+		for j, v2 := range v {
+			if j == len(v)-1 {
+				vec = append(vec, v2)
+			}
+		}
+	}
+
+	return vec
+}
+
+func splitSlices(m matrix) matrix {
+	m_new := matrix{}
+
+	vec := make(vector, 0)
+	for _, v := range m {
+		for j, v2 := range v {
+			if j == len(v)-1 {
+				vec = append(vec, v2)
+			}
+		}
+	}
+
+	c1, c2 := 0, 0
+	boxes := make(vector, 0)
+
+	for x := range vec {
+		c2 += 1
+		boxes = append(boxes, vec[x])
+
+		if c2 > c1 {
+			m_new = append(m_new, boxes)
+			boxes = make(vector, 0)
+			c1 += 1
+			c2 = 0
+		}
+	}
+
+	return m_new
 }
 
 func main() {
-	vnn, err := readFile(NuclearRepulsionEnergy)
+	vnn, err := readFile(NuclearRepulsionEnergy, true)
 	if err != nil {
 		panic(err)
 	}
 
-	sint, err := readFile(OverlapIntegrals)
+	sint, err := readFile(OverlapIntegrals, true)
 	if err != nil {
 		panic(err)
 	}
 
-	ke, err := readFile(OneElectronKinetic)
+	ke, err := readFile(OneElectronKinetic, true)
 	if err != nil {
 		panic(err)
 	}
 
-	ven, err := readFile(NuclearAttraction)
+	ven, err := readFile(NuclearAttraction, true)
 	if err != nil {
 		panic(err)
 	}
@@ -126,4 +173,11 @@ func main() {
 	fmt.Printf("%v\n %v\n %v\n %v\n", vnn, sint, ke, ven)
 
 	CoreHamiltonian(ke.(matrix), ven.(matrix))
+
+	twoE, err := readFile(TwoElectronPath, false)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(twoE)
 }
