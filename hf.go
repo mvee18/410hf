@@ -1,6 +1,11 @@
 package main
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+
+	"gonum.org/v1/gonum/mat"
+)
 
 func CoreHamiltonian(tke, ven matrix) [7][7]float64 {
 	// The lengths SHOULD and MUST be the same. So we can index off of Tke.
@@ -79,4 +84,52 @@ func twoDims(i, j float64) float64 {
 	} else {
 		return j*(j+1)/2 + i
 	}
+}
+
+func SMatrix() ([]float64, mat.Dense, error) {
+	m, err := generateSMatrix()
+	if err != nil {
+		return nil, mat.Dense{}, err
+	}
+
+	evalues, evectors, err := eigenS(m)
+	if err != nil {
+		return nil, mat.Dense{}, err
+	}
+
+	return evalues, evectors, nil
+}
+
+func generateSMatrix() (*mat.SymDense, error) {
+	data, err := readFile(OverlapIntegrals, false)
+	if err != nil {
+		return nil, nil
+	}
+
+	m := mat.NewSymDense(7, nil)
+
+	// We need to initialize the symmetric matrix.
+	for _, v := range data.(matrix) {
+		m.SetSym(int(v[0])-1, int(v[1])-1, v[2])
+	}
+
+	fmt.Printf("\n%1.3f\n\n", mat.Formatted(m))
+
+	return m, nil
+}
+
+func eigenS(m *mat.SymDense) ([]float64, mat.Dense, error) {
+	var eigsym mat.EigenSym
+
+	ok := eigsym.Factorize(m, true)
+	if !ok {
+		return []float64{}, mat.Dense{}, errors.New("symmetric decomposition failed")
+	}
+
+	evalues := eigsym.Values(nil)
+
+	var ev mat.Dense
+	eigsym.VectorsTo(&ev)
+
+	return evalues, ev, nil
 }

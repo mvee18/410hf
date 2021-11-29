@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"testing"
+
+	"gonum.org/v1/gonum/mat"
 )
 
 func AssertMatrices(t *testing.T, path string, start, second []float64) {
@@ -140,6 +143,32 @@ func TestTwoElectronIntegralTrans(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		TwoElectronIntegralTrans(m.(matrix))
+		res := TwoElectronIntegralTrans(m.(matrix))
+		c := 0
+
+		for _, v := range res {
+			if v == 0 {
+				c += 1
+			}
+		}
+
+		want := 406 - 228
+
+		if c != want {
+			t.Errorf("wrong number of zeroes, got %v, wanted %v", c, want)
+		}
+
+	})
+}
+
+func TestSMatrix(t *testing.T) {
+	t.Run("test if S matrix properly orthogonalized", func(t *testing.T) {
+		evalue, evector, err := SMatrix()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		fmt.Printf("The eigenvalues are: \n%1.3f\n\n", evalue)
+		fmt.Printf("The eigenvectors are: \n%1.3f\n\n", mat.Formatted(&evector))
 	})
 }

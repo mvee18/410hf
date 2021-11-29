@@ -17,7 +17,7 @@ const (
 	TwoElectronPath        string = "./input/h2o/STO-3G/eri.dat"
 )
 
-type mat interface {
+type matter interface {
 	iterate() (int, float64)
 }
 
@@ -42,6 +42,19 @@ func (m matrix) iterate() (int, float64) {
 	return 0, 0
 }
 
+func (m matrix) convert() vector {
+	out := make(vector, len(m))
+	for _, v := range m {
+		i, j, value := v[0]-1, v[1]-1, v[2]
+
+		ij := twoDims(i, j)
+
+		out[int(ij)] = value
+	}
+
+	return out
+}
+
 func convertStringSlice(s []string) (vector, error) {
 
 	vect := make(vector, len(s))
@@ -59,7 +72,7 @@ func convertStringSlice(s []string) (vector, error) {
 
 }
 
-func readFile(fp string, splitBool bool) (mat, error) {
+func readFile(fp string, splitBool bool) (matter, error) {
 
 	ap, err := filepath.Abs(fp)
 	if err != nil {
@@ -181,3 +194,5 @@ func main() {
 
 	fmt.Println(twoE)
 }
+
+// Brent says use symmetric if symmetric to put them in the right order.
