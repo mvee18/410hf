@@ -2,11 +2,28 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"math"
 
 	"gonum.org/v1/gonum/mat"
 )
+
+func GenerateCoreHamiltonian() (*mat.Dense, error) {
+	tke, err := readFile(OneElectronKinetic, true)
+	if err != nil {
+		return nil, err
+	}
+
+	ven, err := readFile(NuclearAttraction, true)
+	if err != nil {
+		return nil, err
+	}
+
+	h := CoreHamiltonian(tke.(matrix), ven.(matrix))
+
+	res := convertHMatrix(h)
+
+	return res, nil
+}
 
 func CoreHamiltonian(tke, ven matrix) [7][7]float64 {
 	// The lengths SHOULD and MUST be the same. So we can index off of Tke.
@@ -18,8 +35,6 @@ func CoreHamiltonian(tke, ven matrix) [7][7]float64 {
 			H[j][i] = tke[i][j] + ven[i][j]
 		}
 	}
-
-	fmt.Println(H)
 
 	return H
 }
@@ -51,8 +66,6 @@ func TwoElectronIntegralTrans(m matrix) vector {
 		intermediate = append(intermediate, new_row)
 	}
 
-	fmt.Println(intermediate)
-
 	for _, v := range intermediate {
 		new_row := make(vector, 2)
 		mu, nu, value = v[0], v[1], v[2]
@@ -70,12 +83,9 @@ func TwoElectronIntegralTrans(m matrix) vector {
 		final[int(v[0])] = v[1]
 	}
 
-	fmt.Println(intermediate)
-	fmt.Println(test)
 	// We can iterate over the previous array to make the final compound
 	// index.
 
-	fmt.Println(final)
 	return final
 }
 
@@ -85,6 +95,17 @@ func twoDims(i, j float64) float64 {
 	} else {
 		return j*(j+1)/2 + i
 	}
+}
+
+func generateS() (*mat.Dense, error) {
+	evalue, evector, err := SMatrix()
+	if err != nil {
+		return nil, err
+	}
+
+	res := symmetricOrtho(evalue, &evector)
+
+	return res, nil
 }
 
 func symmetricOrtho(evalues []float64, evectors *mat.Dense) *mat.Dense {

@@ -181,10 +181,5 @@ func TestSMatrix(t *testing.T) {
 		if !mat.EqualApprox(res, want, 0.001) {
 			t.Errorf("Wrong S matrix, wanted \n%1.3f\n\n, got \n%1.3f\n\n", mat.Formatted(want), mat.Formatted(res))
 		}
-		/*
-			if res.DiagView().Diag() != 7 {
-				t.Errorf("matrix not diagonalized")
-			}
-		*/
 	})
 }
