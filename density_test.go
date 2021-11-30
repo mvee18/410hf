@@ -1,19 +1,29 @@
 package main
 
-import "testing"
+import (
+	"testing"
+
+	"gonum.org/v1/gonum/mat"
+)
 
 func TestInitialFockMatrix(t *testing.T) {
 	t.Run("initial Fock", func(t *testing.T) {
-		S, err := generateS()
+		F, err := GenerateInitialFock()
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
-		H, err := GenerateCoreHamiltonian()
-		if err != nil {
-			t.Fatal(err)
-		}
+		want := mat.NewDense(7, 7, []float64{
+			-32.2545866, -2.7914909, -0.0000000, 0.0086110, 0.0000000, -0.1812967, -0.1812967,
+			-2.7914909, -8.2368891, -0.0000000, -0.2282926, 0.0000000, -0.3857987, -0.3857987,
+			-0.0000000, -0.0000000, -7.5428890, -0.0000000, 0.0000000, -0.1132121, 0.1132121,
+			0.0086110, -0.2282926, -0.0000000, -7.4570295, -0.0000000, -0.1102196, -0.1102196,
+			0.0000000, 0.0000000, 0.0000000, -0.0000000, -7.3471449, 0.0000000, 0.0000000,
+			-0.1812967, -0.3857987, -0.1132121, -0.1102196, 0.0000000, -4.0329547, -0.0446466,
+			-0.1812967, -0.3857987, 0.1132121, -0.1102196, 0.0000000, -0.0446466, -4.0329547})
 
-		InitialFockMatrix(S, H)
+		if !mat.EqualApprox(F, want, 0.001) {
+			t.Errorf("Wrong S matrix, wanted \n%1.3f\n\n, got \n%1.3f\n\n", mat.Formatted(want), mat.Formatted(F))
+		}
 	})
 }

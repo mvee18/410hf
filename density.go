@@ -1,21 +1,39 @@
 package main
 
 import (
-	"fmt"
-
 	"gonum.org/v1/gonum/mat"
 )
 
+func GenerateInitialFock() (*mat.Dense, error) {
+	S, err := generateS()
+	if err != nil {
+		return nil, err
+	}
+
+	H, err := GenerateCoreHamiltonian()
+	if err != nil {
+		return nil, err
+	}
+
+	F := InitialFockMatrix(S, H)
+
+	return F, nil
+}
+
 func InitialFockMatrix(s *mat.Dense, h *mat.Dense) *mat.Dense {
-	//var fint mat.Dense
-	//var F mat.Dense
+	var fint mat.Dense
+	var F mat.Dense
 
 	// Due to my own incompetence in using the matrix library, I need to convert
 	// the 7 x 7 matrix to a mat.Dense.
 
-	fmt.Printf("new H matrix \n%1.3f\n\n", mat.Formatted(h))
+	sT := s.T()
 
-	return h
+	fint.Mul(sT, h)
+
+	F.Mul(&fint, s)
+
+	return &F
 }
 
 // You can probably make this faster by initializing the size ahead of time but eh.
