@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"math"
 
 	"gonum.org/v1/gonum/mat"
 )
@@ -86,6 +87,32 @@ func twoDims(i, j float64) float64 {
 	}
 }
 
+func symmetricOrtho(evalues []float64, evectors *mat.Dense) *mat.Dense {
+	// Use the equation S^(-1/2) = PDP^T
+	// Since symmetric, the transpose and inverse are the same.
+	var S mat.Dense
+	var sint mat.Dense
+
+	m := mat.NewDense(len(evalues), len(evalues), nil)
+	for i, v := range evalues {
+		inv := func(k float64) float64 {
+			return math.Pow(k, -0.5)
+		}
+
+		m.Set(i, i, inv(v))
+	}
+
+	// Since m is a diagonal matrix, the reciprocal of the square root of each
+	// term is the M^(-1/2)
+
+	LT := evectors.T()
+	sint.Mul(evectors, m)
+
+	S.Mul(&sint, LT)
+
+	return &S
+}
+
 func SMatrix() ([]float64, mat.Dense, error) {
 	m, err := generateSMatrix()
 	if err != nil {
@@ -112,8 +139,6 @@ func generateSMatrix() (*mat.SymDense, error) {
 	for _, v := range data.(matrix) {
 		m.SetSym(int(v[0])-1, int(v[1])-1, v[2])
 	}
-
-	fmt.Printf("\n%1.3f\n\n", mat.Formatted(m))
 
 	return m, nil
 }

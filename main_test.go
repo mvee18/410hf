@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 
 	"gonum.org/v1/gonum/mat"
@@ -168,7 +167,24 @@ func TestSMatrix(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		fmt.Printf("The eigenvalues are: \n%1.3f\n\n", evalue)
-		fmt.Printf("The eigenvectors are: \n%1.3f\n\n", mat.Formatted(&evector))
+		res := symmetricOrtho(evalue, &evector)
+		want := mat.NewDense(7, 7, []float64{
+			1.0236346, -0.1368547, -0.0000000, -0.0074873, -0.0000000, 0.0190279, 0.0190279,
+			-0.1368547, 1.1578632, 0.0000000, 0.0721601, 0.0000000, -0.2223326, -0.2223326,
+			-0.0000000, 0.0000000, 1.0733148, 0.0000000, -0.0000000, -0.1757583, 0.1757583,
+			-0.0074873, 0.0721601, 0.0000000, 1.0383050, 0.0000000, -0.1184626, -0.1184626,
+			-0.0000000, 0.0000000, -0.0000000, 0.0000000, 1.0000000, -0.0000000, -0.0000000,
+			0.0190279, -0.2223326, -0.1757583, -0.1184626, -0.0000000, 1.1297234, -0.0625975,
+			0.0190279, -0.2223326, 0.1757583, -0.1184626, -0.0000000, -0.0625975, 1.1297234,
+		})
+
+		if !mat.EqualApprox(res, want, 0.001) {
+			t.Errorf("Wrong S matrix, wanted \n%1.3f\n\n, got \n%1.3f\n\n", mat.Formatted(want), mat.Formatted(res))
+		}
+		/*
+			if res.DiagView().Diag() != 7 {
+				t.Errorf("matrix not diagonalized")
+			}
+		*/
 	})
 }
