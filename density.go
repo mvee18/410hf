@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"hf/utils"
+
 	"gonum.org/v1/gonum/mat"
 )
 
@@ -48,4 +51,72 @@ func convertHMatrix(m [7][7]float64) *mat.Dense {
 	}
 
 	return mat.NewDense(len(m), len(m), out)
+}
+
+func CreateCMatrix() (*mat.Dense, error) {
+	f, err := GenerateInitialFock()
+	if err != nil {
+		return nil, err
+	}
+
+	fs := utils.ConvertDenseToSym(f)
+
+	evalues, evectors, err := eigenS(fs)
+	if err != nil {
+		return nil, err
+	}
+
+	m := mat.NewDense(len(evalues), len(evalues), nil)
+	for i, v := range evalues {
+		m.Set(i, i, v)
+	}
+
+	fmt.Printf("evalues got \n%1.3f\n\n", mat.Formatted(m))
+	fmt.Printf("evectors got \n%1.3f\n\n", mat.Formatted(&evectors))
+
+	C, err := transformCEVectors(&evectors)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("C got \n%1.3f\n\n", mat.Formatted(C))
+
+	return C, nil
+}
+
+func transformCEVectors(Co *mat.Dense) (*mat.Dense, error) {
+	var C mat.Dense
+
+	S, err := generateS()
+	if err != nil {
+		return nil, err
+	}
+
+	C.Mul(S, Co)
+
+	fmt.Printf("C got \n%1.3f\n\n", mat.Formatted(&C))
+
+	return &C, nil
+}
+
+func DensityMatrix(C *mat.Dense) (*mat.Dense, error) {
+	rows, cols := C.Dims()
+
+	electron_count := 10
+
+	D := mat.NewDense(rows, cols, nil)
+
+	for mu := 0; mu < rows; mu++ {
+		for nu := 0; nu < cols; nu++ {
+			var val float64
+			for e := 0; e < electron_count/2; e++ {
+				val += C.At(mu, e) * C.At(nu, e)
+			}
+			D.Set(mu, nu, val)
+		}
+	}
+
+	fmt.Printf("D got \n%1.3f\n\n", mat.Formatted(D))
+
+	return D, nil
 }

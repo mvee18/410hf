@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"hf/utils"
 	"testing"
 
 	"gonum.org/v1/gonum/mat"
@@ -24,6 +26,67 @@ func TestInitialFockMatrix(t *testing.T) {
 
 		if !mat.EqualApprox(F, want, 0.001) {
 			t.Errorf("Wrong S matrix, wanted \n%1.3f\n\n, got \n%1.3f\n\n", mat.Formatted(want), mat.Formatted(F))
+		}
+	})
+}
+
+func TestCreateCMatrix(t *testing.T) {
+	t.Run("test conversion util", func(t *testing.T) {
+		f, err := GenerateInitialFock()
+		if err != nil {
+			t.Error(err)
+		}
+
+		res := utils.ConvertDenseToSym(f)
+
+		// TODO: Fix this test.
+		fmt.Printf("Got \n%1.3f\n\n", mat.Formatted(res))
+	})
+
+	t.Run("C matrix", func(t *testing.T) {
+		C, err := CreateCMatrix()
+		if err != nil {
+			t.Error(err)
+		}
+
+		want := mat.NewDense(7, 7, []float64{
+			-1.0015436, 0.2336245, 0.0000000, 0.0856842, 0.0000000, -0.0482226, -0.0000000,
+			0.0071893, -1.0579388, -0.0000000, -0.3601105, -0.0000000, 0.4631213, 0.0000000,
+			-0.0000000, -0.0000000, 1.0610702, 0.0000000, -0.0000000, -0.0000000, 0.2965071,
+			0.0002671, -0.4272843, -0.0000000, 0.9399425, 0.0000000, 0.2129401, 0.0000000,
+			0.0000000, 0.0000000, -0.0000000, 0.0000000, -1.0000000, -0.0000000, -0.0000000,
+			-0.0018213, 0.1492533, -0.1377210, -0.0378579, 0.0000000, -0.7807003, -0.8501403,
+			-0.0018213, 0.1492533, 0.1377210, -0.0378579, -0.0000000, -0.7807003, 0.8501403,
+		})
+
+		fmt.Printf("Wanted \n%1.3f\n\n Got \n%1.3f\n\n", mat.Formatted(want), mat.Formatted(C))
+	})
+}
+
+func TestDensityMatrix(t *testing.T) {
+	t.Run("density mat", func(t *testing.T) {
+		C, err := CreateCMatrix()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		D, err := DensityMatrix(C)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		want := mat.NewDense(7, 7, []float64{
+			1.0650117, -0.2852166, -0.0000000, -0.0195534, -0.0000000, 0.0334496, 0.0334496,
+			-0.2852166, 1.2489657, 0.0000000, 0.1135594, 0.0000000, -0.1442809, -0.1442809,
+			-0.0000000, 0.0000000, 1.1258701, -0.0000000, -0.0000000, -0.1461317, 0.1461317,
+			-0.0195534, 0.1135594, -0.0000000, 1.0660638, 0.0000000, -0.0993583, -0.0993583,
+			-0.0000000, 0.0000000, -0.0000000, 0.0000000, 1.0000000, -0.0000000, -0.0000000,
+			0.0334496, -0.1442809, -0.1461317, -0.0993583, -0.0000000, 0.0426802, 0.0047460,
+			0.0334496, -0.1442809, 0.1461317, -0.0993583, -0.0000000, 0.0047460, 0.0426802,
+		})
+
+		if !mat.EqualApprox(D, want, 0.001) {
+			t.Errorf("Wrong D matrix, wanted \n%1.3f\n\n, got \n%1.3f\n\n", mat.Formatted(want), mat.Formatted(D))
 		}
 	})
 }
