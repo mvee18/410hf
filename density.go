@@ -17,21 +17,21 @@ func GenerateInitialFock() (*mat.Dense, error) {
 		return nil, err
 	}
 
-	F := FockMatrix(S, H)
+	St := S.T()
+
+	F := FockMatrix(S, &St, H)
 
 	return F, nil
 }
 
-func FockMatrix(s *mat.Dense, h *mat.Dense) *mat.Dense {
+func FockMatrix(s *mat.Dense, st *mat.Matrix, h *mat.Dense) *mat.Dense {
 	var fint mat.Dense
 	var F mat.Dense
 
 	// Due to my own incompetence in using the matrix library, I need to convert
 	// the 7 x 7 matrix to a mat.Dense.
 
-	sT := s.T()
-
-	fint.Mul(sT, h)
+	fint.Mul(*st, h)
 
 	F.Mul(&fint, s)
 

@@ -202,7 +202,9 @@ func main() {
 		panic(err)
 	}
 
-	final, err := RunHF(H, Fo, D, TEI, Etotal, S)
+	fmt.Printf("Initial E: %.12f\n", Etotal)
+	fmt.Printf("Iter E(elec) E(tot) RMSD Delta(Etot)\n")
+	final, err := RunHF(H, Fo, D, TEI, Etotal, S, S.T())
 	if err != nil {
 		panic(err)
 	}
@@ -210,15 +212,16 @@ func main() {
 	fmt.Printf("The Etot is %v in MAIN\n", final)
 }
 
-func RunHF(H *mat.Dense, F *mat.Dense, D *mat.Dense, TEI []float64, Estart float64, S *mat.Dense) (float64, error) {
+func RunHF(H *mat.Dense, F *mat.Dense, D *mat.Dense, TEI []float64, Estart float64, S *mat.Dense, ST mat.Matrix) (float64, error) {
 	converged := false
+	count := 0
 
 	var Eprevious float64
 	Eprevious = Estart
 	for !converged {
 		Fnew := NewFockMatrix(H, D, TEI)
 
-		FPrime := FockMatrix(S, Fnew)
+		FPrime := FockMatrix(S, &ST, Fnew)
 
 		Cnew, err := CreateCMatrix(FPrime)
 		if err != nil {
@@ -230,21 +233,22 @@ func RunHF(H *mat.Dense, F *mat.Dense, D *mat.Dense, TEI []float64, Estart float
 			return 0.0, err
 		}
 
-		E := CalcEnergyIter(Dnew, FPrime, H)
+		E := CalcEnergyIter(Dnew, Fnew, H)
 
 		Etotal, err := CalcTotalEnergy(E)
 		if err != nil {
 			panic(err)
 		}
 
-		if math.Abs(ComputeDensityDifference(Dnew, D)) < 0.0000000000001 && math.Abs(ComputeElectronicDiff(Etotal, Eprevious)) < 0.0000000000001 {
+		if math.Abs(ComputeDensityDifference(Dnew, D)) < 1e-12 && math.Abs(ComputeElectronicDiff(Etotal, Eprevious)) < 1e-12 {
 			converged = true
 			// fmt.Println(ComputeDensityDifference(Dnew, D), ComputeElectronicDiff(Etotal, Eprevious))
 		} else {
-			fmt.Printf("%.8f %.8f %.8f\n", Etotal, ComputeDensityDifference(Dnew, D), ComputeElectronicDiff(Etotal, Eprevious))
-			F = FPrime
+			fmt.Printf("%d %.12f %.12f %.12f %.12f\n", count, E, Etotal, ComputeDensityDifference(Dnew, D), ComputeElectronicDiff(Etotal, Eprevious))
+			*F = *FPrime
 			D = Dnew
 			Eprevious = Etotal
+			count += 1
 		}
 
 	}
