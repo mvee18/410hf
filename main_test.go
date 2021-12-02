@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 
 	"gonum.org/v1/gonum/mat"
@@ -145,8 +144,6 @@ func TestTwoElectronIntegralTrans(t *testing.T) {
 
 		res := TwoElectronIntegralTrans(m.(matrix))
 		c := 0
-
-		fmt.Println(res)
 
 		for _, v := range res {
 			if v == 0 {

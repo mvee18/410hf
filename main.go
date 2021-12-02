@@ -202,14 +202,12 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Printf("The Etot is %v\n.", Etotal)
-
 	final, err := RunHF(H, Fo, D, TEI, Etotal, S)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Printf("The Etot is %v\n.", final)
+	fmt.Printf("The Etot is %v in MAIN\n", final)
 }
 
 func RunHF(H *mat.Dense, F *mat.Dense, D *mat.Dense, TEI []float64, Estart float64, S *mat.Dense) (float64, error) {
@@ -232,8 +230,6 @@ func RunHF(H *mat.Dense, F *mat.Dense, D *mat.Dense, TEI []float64, Estart float
 			return 0.0, err
 		}
 
-		// fmt.Printf("Fprime is \n%1.3f\n\n", mat.Formatted(FPrime))
-
 		E := CalcEnergyIter(Dnew, FPrime, H)
 
 		Etotal, err := CalcTotalEnergy(E)
@@ -241,10 +237,11 @@ func RunHF(H *mat.Dense, F *mat.Dense, D *mat.Dense, TEI []float64, Estart float
 			panic(err)
 		}
 
-		if math.Abs(ComputeDensityDifference(D, Dnew)) < 0.001 && math.Abs(ComputeElectronicDiff(Eprevious, Etotal)) < 0.001 {
+		if math.Abs(ComputeDensityDifference(Dnew, D)) < 0.0000000000001 && math.Abs(ComputeElectronicDiff(Etotal, Eprevious)) < 0.0000000000001 {
 			converged = true
-			fmt.Println(ComputeDensityDifference(D, Dnew), ComputeElectronicDiff(Eprevious, Etotal))
+			// fmt.Println(ComputeDensityDifference(Dnew, D), ComputeElectronicDiff(Etotal, Eprevious))
 		} else {
+			fmt.Printf("%.8f %.8f %.8f\n", Etotal, ComputeDensityDifference(Dnew, D), ComputeElectronicDiff(Etotal, Eprevious))
 			F = FPrime
 			D = Dnew
 			Eprevious = Etotal
@@ -269,7 +266,7 @@ func ComputeDensityDifference(d1, d2 *mat.Dense) float64 {
 }
 
 func ComputeElectronicDiff(e1, e2 float64) float64 {
-	fmt.Printf("Previous: %v New: %v\n", e1, e2)
+	//fmt.Printf("Previous: %v New: %v\n", e2, e1)
 	return e1 - e2
 }
 
