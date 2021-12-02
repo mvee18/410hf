@@ -3,10 +3,13 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"gonum.org/v1/gonum/mat"
 )
 
 const (
@@ -163,36 +166,122 @@ func splitSlices(m matrix) matrix {
 }
 
 func main() {
-	vnn, err := readFile(NuclearRepulsionEnergy, true)
-	if err != nil {
-		panic(err)
-	}
-
-	sint, err := readFile(OverlapIntegrals, true)
-	if err != nil {
-		panic(err)
-	}
-
-	ke, err := readFile(OneElectronKinetic, true)
-	if err != nil {
-		panic(err)
-	}
-
-	ven, err := readFile(NuclearAttraction, true)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Printf("%v\n %v\n %v\n %v\n", vnn, sint, ke, ven)
-
-	CoreHamiltonian(ke.(matrix), ven.(matrix))
+	H, err := GenerateCoreHamiltonian()
 
 	twoE, err := readFile(TwoElectronPath, false)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(twoE)
+	TEI := TwoElectronIntegralTrans(twoE.(matrix))
+
+	S, err := generateS()
+	if err != nil {
+		panic(err)
+	}
+
+	Fo, err := GenerateInitialFock()
+	if err != nil {
+		panic(err)
+	}
+
+	C, err := CreateCMatrix(Fo)
+	if err != nil {
+		panic(err)
+	}
+
+	D, err := DensityMatrix(C)
+	if err != nil {
+		panic(err)
+	}
+
+	E := calcHFEnergy(D, H)
+
+	Etotal, err := CalcTotalEnergy(E)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("The Etot is %v\n.", Etotal)
+
+	final, err := RunHF(H, Fo, D, TEI, Etotal, S)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("The Etot is %v\n.", final)
 }
 
-// Brent says use symmetric if symmetric to put them in the right order.
+func RunHF(H *mat.Dense, F *mat.Dense, D *mat.Dense, TEI []float64, Estart float64, S *mat.Dense) (float64, error) {
+	converged := false
+
+	var Eprevious float64
+	Eprevious = Estart
+	for !converged {
+		Fnew := NewFockMatrix(H, D, TEI)
+
+		FPrime := FockMatrix(S, Fnew)
+
+		Cnew, err := CreateCMatrix(FPrime)
+		if err != nil {
+			return 0.0, err
+		}
+
+		Dnew, err := DensityMatrix(Cnew)
+		if err != nil {
+			return 0.0, err
+		}
+
+		// fmt.Printf("Fprime is \n%1.3f\n\n", mat.Formatted(FPrime))
+
+		E := CalcEnergyIter(Dnew, FPrime, H)
+
+		Etotal, err := CalcTotalEnergy(E)
+		if err != nil {
+			panic(err)
+		}
+
+		if math.Abs(ComputeDensityDifference(D, Dnew)) < 0.001 && math.Abs(ComputeElectronicDiff(Eprevious, Etotal)) < 0.001 {
+			converged = true
+			fmt.Println(ComputeDensityDifference(D, Dnew), ComputeElectronicDiff(Eprevious, Etotal))
+		} else {
+			F = FPrime
+			D = Dnew
+			Eprevious = Etotal
+		}
+
+	}
+
+	return 0.0, nil
+}
+
+func ComputeDensityDifference(d1, d2 *mat.Dense) float64 {
+	rows, cols := d1.Dims()
+
+	var RMSD float64
+	for mu := 0; mu < rows; mu++ {
+		for nu := 0; nu < cols; nu++ {
+			RMSD += math.Pow((d1.At(mu, nu) - d2.At(mu, nu)), 2)
+		}
+	}
+
+	return RMSD
+}
+
+func ComputeElectronicDiff(e1, e2 float64) float64 {
+	fmt.Printf("Previous: %v New: %v\n", e1, e2)
+	return e1 - e2
+}
+
+func CalcEnergyIter(d *mat.Dense, f *mat.Dense, h *mat.Dense) float64 {
+	rows, cols := d.Dims()
+
+	var E float64
+	for mu := 0; mu < rows; mu++ {
+		for nu := 0; nu < cols; nu++ {
+			E += d.At(mu, nu) * (h.At(mu, nu) + f.At(mu, nu))
+		}
+	}
+
+	return E
+}

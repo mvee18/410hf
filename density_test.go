@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"hf/utils"
+	"math"
 	"testing"
 
 	"gonum.org/v1/gonum/mat"
@@ -44,7 +45,9 @@ func TestCreateCMatrix(t *testing.T) {
 	})
 
 	t.Run("C matrix", func(t *testing.T) {
-		C, err := CreateCMatrix()
+		f, _ := GenerateInitialFock()
+
+		C, err := CreateCMatrix(f)
 		if err != nil {
 			t.Error(err)
 		}
@@ -65,7 +68,9 @@ func TestCreateCMatrix(t *testing.T) {
 
 func TestDensityMatrix(t *testing.T) {
 	t.Run("density mat", func(t *testing.T) {
-		C, err := CreateCMatrix()
+		f, _ := GenerateInitialFock()
+
+		C, err := CreateCMatrix(f)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -88,5 +93,70 @@ func TestDensityMatrix(t *testing.T) {
 		if !mat.EqualApprox(D, want, 0.001) {
 			t.Errorf("Wrong D matrix, wanted \n%1.3f\n\n, got \n%1.3f\n\n", mat.Formatted(want), mat.Formatted(D))
 		}
+	})
+}
+
+func TestGenerateHFEnergy(t *testing.T) {
+	t.Run("hf energy", func(t *testing.T) {
+		got, etot, err := GenerateHFEnergy()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		etot_want := -117.8397
+		want := -125.842077437699
+
+		if math.Abs(want-got) > 0.001 {
+			t.Errorf("got %v, want %v\n", got, want)
+		}
+
+		if math.Abs(etot-etot_want) > 0.001 {
+			t.Errorf("got %v, want %v\n", etot, etot_want)
+		}
+	})
+
+}
+
+func TestNewFockMatrix(t *testing.T) {
+	t.Run("new fock matrix", func(t *testing.T) {
+		H, err := GenerateCoreHamiltonian()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		f, err := GenerateInitialFock()
+
+		C, err := CreateCMatrix(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		D, err := DensityMatrix(C)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		m, err := readFile(TwoElectronPath, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		TEI := TwoElectronIntegralTrans(m.(matrix))
+
+		FPrime := NewFockMatrix(H, D, TEI)
+
+		want := mat.NewDense(7, 7, []float64{
+			-18.8132695, -4.8726875, -0.0000000, -0.0115290, 0.0000000, -0.8067323, -0.8067323,
+			-4.8726875, -1.7909029, -0.0000000, -0.1808692, 0.0000000, -0.5790557, -0.5790557,
+			-0.0000000, -0.0000000, 0.1939644, 0.0000000, 0.0000000, -0.1708886, 0.1708886,
+			-0.0115290, -0.1808692, 0.0000000, 0.2391247, 0.0000000, -0.1828683, -0.1828683,
+			0.0000000, 0.0000000, 0.0000000, 0.0000000, 0.3091071, 0.0000000, 0.0000000,
+			-0.8067323, -0.5790557, -0.1708886, -0.1828683, 0.0000000, -0.1450338, -0.1846675,
+			-0.8067323, -0.5790557, 0.1708886, -0.1828683, 0.0000000, -0.1846675, -0.1450338})
+
+		if !mat.EqualApprox(FPrime, want, 0.001) {
+			t.Errorf("Wrong FPrime matrix, wanted \n%1.3f\n\n, got \n%1.3f\n\n", mat.Formatted(want), mat.Formatted(FPrime))
+		}
+
 	})
 }
